@@ -11,7 +11,7 @@ import { useLanguage } from "@/lib/languageContext"
 export default function RecipeDetailPage() {
   const { id } = useParams()
   const router = useRouter()
-  const { language } = useLanguage()
+  const { language, setLanguage } = useLanguage()
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -63,12 +63,29 @@ export default function RecipeDetailPage() {
               fetch("/api/translate", { method: "POST", body: JSON.stringify({ text: typeof sourceInstructions === 'string' ? sourceInstructions : JSON.stringify(sourceInstructions), targetLanguage: language }) }).then(r => r.json())
             ])
 
-            setRecipe({
-              ...baseRecipe,
+            const translatedData = {
               title: titleObj.translated || sourceTitle,
               ingredients: ingredientsObj.translated || sourceIngredients,
               instructions: stepsObj.translated || sourceInstructions,
+            }
+
+            setRecipe({
+              ...baseRecipe,
+              ...translatedData,
             } as Recipe)
+
+            // Cache translation asynchronously only if we actually got a real translation
+            if (titleObj.source === "lingo.dev") {
+              supabase.from("Recipe Translations").insert({
+                recipe_id: id,
+                language: language,
+                title: translatedData.title,
+                ingredients: typeof translatedData.ingredients === "string" ? translatedData.ingredients : JSON.stringify(translatedData.ingredients),
+                instructions: typeof translatedData.instructions === "string" ? translatedData.instructions : JSON.stringify(translatedData.instructions),
+              }).then(({ error }) => {
+                if (error) console.error("Error caching translation:", error)
+              })
+            }
           } catch (e) {
             setRecipe({
               ...baseRecipe,
@@ -163,13 +180,38 @@ export default function RecipeDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in relative z-10 pt-4">
-      {/* Back button */}
-      <button
-        onClick={() => router.back()}
-        className="mb-6 flex items-center gap-2 text-stone-500 hover:text-hunter-green transition-colors bg-white/50 dark:bg-stone-800/50 px-4 py-2 rounded-full border border-stone-200 dark:border-stone-700 w-fit backdrop-blur-sm shadow-sm"
-      >
-        <span>←</span> Back to recipes
-      </button>
+      {/* Header Controls */}
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-stone-500 hover:text-hunter-green transition-colors bg-white/50 dark:bg-stone-800/50 px-4 py-2 rounded-full border border-stone-200 dark:border-stone-700 w-fit backdrop-blur-sm shadow-sm"
+        >
+          <span>←</span> Back to recipes
+        </button>
+        
+        <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-800/50 px-4 py-1.5 rounded-full border border-stone-200 dark:border-stone-700 backdrop-blur-sm shadow-sm">
+          <span className="text-sm font-semibold text-stone-600 dark:text-stone-300 hidden sm:inline-block">Translate to:</span>
+           <select 
+             className="bg-transparent border-none focus:outline-none text-hunter-green font-bold cursor-pointer"
+             value={language}
+             onChange={(e) => {
+               const lang = e.target.value;
+               setLanguage(lang);
+             }}
+           >
+             <option value="en">English (US)</option>
+             <option value="es">Spanish</option>
+             <option value="fr">French</option>
+             <option value="de">German</option>
+             <option value="it">Italian</option>
+             <option value="pt">Portuguese</option>
+             <option value="zh">Chinese</option>
+             <option value="ja">Japanese</option>
+             <option value="hi">Hindi</option>
+             <option value="ar">Arabic</option>
+           </select>
+        </div>
+      </div>
 
       <div className="glass-card rounded-[32px] overflow-hidden">
         {/* Header Section */}
@@ -247,7 +289,7 @@ export default function RecipeDetailPage() {
       ) : (
         <IngredientSubstitute substitutes={substitutions} />
       )}
-      <CommentSection />
+      <CommentSection recipeId={id as string} language={language} />
     </div>
   )
 }

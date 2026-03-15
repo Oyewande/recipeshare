@@ -12,22 +12,17 @@ const LanguageContext = createContext<LanguageContextType>({
   setLanguage: () => {}
 })
 
-const SUPPORTED_LANGUAGES = ["en", "es", "fr", "de"]
-
 export function LanguageProvider({ children }: { children: ReactNode }) {
-
   const [language, setLanguage] = useState("en")
   
   useEffect(() => {
     // On load, detect user preference from Storage or Browser
     const storedLang = localStorage.getItem("preferredLanguage")
-    if (storedLang && SUPPORTED_LANGUAGES.includes(storedLang)) {
+    if (storedLang) {
       setLanguage(storedLang)
-    } else if (typeof navigator !== "undefined") {
+    } else if (typeof navigator !== "undefined" && navigator.language) {
       const browserLang = navigator.language.split('-')[0]
-      if (SUPPORTED_LANGUAGES.includes(browserLang)) {
-        setLanguage(browserLang)
-      }
+      setLanguage(browserLang)
     }
   }, [])
 

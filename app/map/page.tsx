@@ -53,7 +53,7 @@ export default function MapPage() {
           {selectedCountry ? (
             <div className="bg-vanilla-cream rounded-lg p-6 border border-vanilla-cream flex-1">
               <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span>{selectedCountry}</span>
+                <span>Dishes from {selectedCountry}</span>
               </h2>
               
               {loading ? (

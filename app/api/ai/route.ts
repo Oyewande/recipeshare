@@ -63,6 +63,18 @@ Respond ONLY with valid JSON containing the array of objects. Do not include mar
     return NextResponse.json({ recommendations })
   } catch (err: any) {
     console.error("AI Substitute Error:", err)
-    return NextResponse.json({ error: err.message || "Failed to generate AI substitutes" }, { status: 500 })
+    
+    // Instead of failing silently with 500, return the error as a recommendation
+    // so the user can visibly see that OpenAI was triggered but denied the request.
+    return NextResponse.json({
+      recommendations: [
+        {
+          original: "AI Substitution Service",
+          substitute: "API Error Occurred",
+          reason: err.message || "Failed to connect to OpenAI.",
+          ratio: "N/A"
+        }
+      ]
+    })
   }
 }

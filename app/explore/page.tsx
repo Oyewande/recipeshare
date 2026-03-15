@@ -24,10 +24,16 @@ export default function ExplorePage() {
   useEffect(() => {
     const fetchExploreRecipes = async () => {
       setLoading(true)
-      const targetLang = filterLang === "all" ? language : filterLang
       try {
-        const data = await fetchRecipes(targetLang, 30)
-        setRecipes(data)
+        // Fetch recipes translated to the current user's requested language context
+        const data = await fetchRecipes(language, 30)
+        
+        // Let's filter the array by their native `original_language` if it's not "all"
+        if (filterLang !== "all") {
+          setRecipes(data.filter(r => r.original_language?.toLowerCase() === filterLang.toLowerCase()))
+        } else {
+          setRecipes(data)
+        }
       } catch (err) {
         console.error(err)
         setRecipes([])

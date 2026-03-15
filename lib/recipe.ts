@@ -33,8 +33,7 @@ export async function fetchRecipes(language: string, limit = 12, search?: string
       const translationsArray = item["Recipe Translations"] || []
       let translation = translationsArray.find((t: any) => t.language === language)
 
-      // If we don't have a translation and the requested language is different from original,
-      // dynamically translate the title for the explore page preview.
+  
       if (!translation && item.original_language && language !== "all" && language !== item.original_language) {
         try {
           const res = await fetch("/api/translate", {

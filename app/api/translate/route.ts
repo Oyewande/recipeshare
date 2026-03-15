@@ -26,8 +26,9 @@ export async function POST(request: Request) {
 
     // Real translation via lingo.dev
     try {
-      // @ts-ignore — lingo.dev has no type declarations
-      const Lingo = (await import("lingo.dev")).default
+      // @ts-ignore
+      const { Lingo } = await import("lingo.dev")
+      // @ts-ignore
       const lingo = new Lingo({ apiKey })
 
       const result = await lingo.translate({
