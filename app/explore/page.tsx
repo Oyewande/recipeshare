@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import SearchBar from "@/components/SearchBar"
 import RecipeGrid from "@/components/RecipeGrid"
@@ -13,7 +13,9 @@ import { useUI } from "@/lib/useUI"
 // Keyed by "<language>__<searchQuery>" so different searches stay separate.
 const recipeCache: Record<string, Recipe[]> = {}
 
-export default function ExplorePage() {
+// Inner component — allowed to call useSearchParams() because it will always
+// be rendered inside a <Suspense> boundary (see ExplorePageWrapper below).
+function ExploreContent() {
   const { language } = useLanguage()
   const { t } = useUI()
   const searchParams = useSearchParams()
@@ -140,5 +142,32 @@ export default function ExplorePage() {
         )}
       </section>
     </div>
+  )
+}
+
+// Skeleton shown by Suspense while the URL search params are being read
+function ExploreSkeleton() {
+  return (
+    <div className="max-w-7xl mx-auto px-4 space-y-10">
+      <div className="pt-6">
+        <div className="h-12 w-72 bg-stone-200 dark:bg-stone-700 rounded-xl animate-pulse mb-3" />
+        <div className="h-5 w-96 bg-stone-100 dark:bg-stone-800 rounded animate-pulse" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+          <div key={n} className="h-80 rounded-[24px] bg-stone-100 dark:bg-stone-800 animate-pulse" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Default export wraps ExploreContent in Suspense so Next.js can statically
+// prerender this page without hitting the useSearchParams() restriction.
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={<ExploreSkeleton />}>
+      <ExploreContent />
+    </Suspense>
   )
 }

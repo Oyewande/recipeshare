@@ -32,6 +32,10 @@
   "overrides": {
     "@lingo.dev/_react": {
       "next": "$next"
+    },
+    "react-simple-maps": {
+      "react": "$react",
+      "react-dom": "$react-dom"
     }
   }
 }
