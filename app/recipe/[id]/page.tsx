@@ -16,11 +16,17 @@ export default function RecipeDetailPage() {
   const { language, setLanguage } = useLanguage()
   const { t } = useUI()
   const [recipe, setRecipe] = useState<Recipe | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true)        // true only on first load (no data yet)
+  const [translating, setTranslating] = useState(false) // true while re-translating with data visible
 
   useEffect(() => {
     const fetchRecipe = async () => {
-      setLoading(true)
+      // Only show full-page spinner when we have no recipe data at all
+      if (!recipe) {
+        setLoading(true)
+      } else {
+        setTranslating(true)
+      }
 
       // Fetch base recipe
       const { data: baseRecipe, error: baseError } = await supabase
@@ -32,7 +38,15 @@ export default function RecipeDetailPage() {
       if (!baseRecipe || baseError) {
         setRecipe(null)
         setLoading(false)
+        setTranslating(false)
         return
+      }
+
+      // On initial load, immediately show the base recipe in its original language
+      // so the user sees content right away while translations load
+      if (!recipe) {
+        setRecipe(baseRecipe as Recipe)
+        setLoading(false)
       }
 
       // Fetch all translations for this recipe
@@ -49,14 +63,14 @@ export default function RecipeDetailPage() {
           ...baseRecipe,
           title: translation.title || baseRecipe.title,
           ingredients: translation.ingredients || baseRecipe.ingredients,
-          instructions: translation.instructions || translation.steps || baseRecipe.instructions,
+          instructions: translation.instructions || baseRecipe.instructions,
         } as Recipe)
       } else {
         // Apply fallback logic + dynamic translation
         let fallback = (translations && translations.length > 0) ? translations[0] : null
         const sourceTitle = fallback ? fallback.title : baseRecipe.title
         const sourceIngredients = fallback ? fallback.ingredients : baseRecipe.ingredients
-        const sourceInstructions = fallback ? (fallback.instructions || fallback.steps) : baseRecipe.instructions
+        const sourceInstructions = fallback ? fallback.instructions : baseRecipe.instructions
 
         if (language !== "all" && language !== baseRecipe.original_language) {
           try {
@@ -78,14 +92,13 @@ export default function RecipeDetailPage() {
               ...translatedData,
             } as Recipe)
 
-            // Cache translation asynchronously only if we actually got a real translation
             if (titleObj.source === "lingo.dev") {
               supabase.from("Recipe Translations").insert({
                 recipe_id: id,
                 language: language,
                 title: translatedData.title,
                 ingredients: typeof translatedData.ingredients === "string" ? translatedData.ingredients : JSON.stringify(translatedData.ingredients),
-                steps: typeof translatedData.instructions === "string" ? translatedData.instructions : JSON.stringify(translatedData.instructions),
+                instructions: typeof translatedData.instructions === "string" ? translatedData.instructions : JSON.stringify(translatedData.instructions),
               }).then(({ error }) => {
                 if (error) console.error("Error caching translation:", error)
               })
@@ -109,6 +122,7 @@ export default function RecipeDetailPage() {
       }
 
       setLoading(false)
+      setTranslating(false)
     }
 
     fetchRecipe()
@@ -117,9 +131,10 @@ export default function RecipeDetailPage() {
   const [substitutions, setSubstitutions] = useState<any[]>([])
   const [subsLoading, setSubsLoading] = useState(false)
 
-  // Fetch AI Substitutes when recipe finishes loading
   useEffect(() => {
     if (!recipe || !recipe.ingredients) return
+    // Avoid re-fetching if we already have results
+    if (substitutions.length > 0) return
 
     const fetchAI = async () => {
       setSubsLoading(true)
@@ -143,7 +158,7 @@ export default function RecipeDetailPage() {
     }
 
     fetchAI()
-  }, [recipe?.id])
+  }, [recipe])
 
   if (loading) return (
     <div className="min-h-[50vh] flex items-center justify-center">
@@ -194,31 +209,58 @@ export default function RecipeDetailPage() {
           <span>←</span> {t("backToRecipes")}
         </button>
 
-        <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-800/50 px-4 py-1.5 rounded-full border border-stone-200 dark:border-stone-700 backdrop-blur-sm shadow-sm">
-          <span className="text-sm font-semibold text-stone-600 dark:text-stone-300 hidden sm:inline-block">{t("translateTo")}</span>
-           <select 
-             className="bg-transparent border-none focus:outline-none text-hunter-green font-bold cursor-pointer"
-             value={language}
-             onChange={(e) => {
-               const lang = e.target.value;
-               setLanguage(lang);
-             }}
-           >
-             <option value="en">English (US)</option>
-             <option value="es">Spanish</option>
-             <option value="fr">French</option>
-             <option value="de">German</option>
-             <option value="it">Italian</option>
-             <option value="pt">Portuguese</option>
-             <option value="zh">Chinese</option>
-             <option value="ja">Japanese</option>
-             <option value="hi">Hindi</option>
-             <option value="ar">Arabic</option>
-           </select>
+        <div className="flex items-center gap-2">
+          {/* Translating indicator */}
+          {translating && (
+            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-full text-xs font-semibold border border-amber-200 dark:border-amber-800 animate-pulse">
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Translating…
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-800/50 px-4 py-1.5 rounded-full border border-stone-200 dark:border-stone-700 backdrop-blur-sm shadow-sm">
+            <span className="text-sm font-semibold text-stone-600 dark:text-stone-300 hidden sm:inline-block">{t("translateTo")}</span>
+            <select
+              className="bg-transparent border-none focus:outline-none text-hunter-green font-bold cursor-pointer"
+              value={language}
+              onChange={(e) => {
+                const lang = e.target.value;
+                setLanguage(lang);
+              }}
+            >
+              <optgroup label="Popular">
+                <option value="en">🇬🇧 English</option>
+                <option value="es">🇪🇸 Spanish</option>
+                <option value="fr">🇫🇷 French</option>
+                <option value="de">🇩🇪 German</option>
+                <option value="it">🇮🇹 Italian</option>
+                <option value="pt">🇧🇷 Portuguese</option>
+                <option value="zh">🇨🇳 Chinese</option>
+                <option value="ja">🇯🇵 Japanese</option>
+              </optgroup>
+              <optgroup label="More">
+                <option value="hi">🇮🇳 Hindi</option>
+                <option value="ar">🇸🇦 Arabic</option>
+                <option value="ko">🇰🇷 Korean</option>
+                <option value="ru">🇷🇺 Russian</option>
+                <option value="nl">🇳🇱 Dutch</option>
+                <option value="tr">🇹🇷 Turkish</option>
+              </optgroup>
+              <optgroup label="African">
+                <option value="yo">🇳🇬 Yoruba</option>
+                <option value="sw">🇰🇪 Swahili</option>
+                <option value="ha">🇳🇬 Hausa</option>
+                <option value="am">🇪🇹 Amharic</option>
+              </optgroup>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="glass-card rounded-[32px] overflow-hidden">
+      <div className={`glass-card rounded-[32px] overflow-hidden transition-opacity duration-300 ${translating ? 'opacity-60' : 'opacity-100'}`}>
         {/* Header Section */}
         <div className="relative h-72 sm:h-96 md:h-[450px]">
           <Image

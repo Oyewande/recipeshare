@@ -34,6 +34,12 @@ function ExploreContent() {
     { code: "es",  label: t("filterSpanish"),emoji: "🇪🇸" },
     { code: "fr",  label: t("filterFrench"), emoji: "🇫🇷" },
     { code: "de",  label: t("filterGerman"), emoji: "🇩🇪" },
+    { code: "it",  label: "Italiano",        emoji: "🇮🇹" },
+    { code: "pt",  label: "Português",       emoji: "🇧🇷" },
+    { code: "ja",  label: "日本語",           emoji: "🇯🇵" },
+    { code: "ko",  label: "한국어",           emoji: "🇰🇷" },
+    { code: "yo",  label: "Yorùbá",          emoji: "🇳🇬" },
+    { code: "sw",  label: "Kiswahili",       emoji: "🇰🇪" },
   ]
 
   // Effect 1: Fetch from Supabase only when language or search query changes.

@@ -23,6 +23,10 @@ const MORE_LANGUAGES = [
   { code: "ru", label: "Русский",    emoji: "🇷🇺" },
   { code: "nl", label: "Nederlands", emoji: "🇳🇱" },
   { code: "tr", label: "Türkçe",     emoji: "🇹🇷" },
+  { code: "yo", label: "Yorùbá",     emoji: "🇳🇬" },
+  { code: "sw", label: "Kiswahili",  emoji: "🇰🇪" },
+  { code: "ha", label: "Hausa",      emoji: "🇳🇬" },
+  { code: "am", label: "አማርኛ",      emoji: "🇪🇹" },
 ]
 
 export default function LanguageSwitcher() {

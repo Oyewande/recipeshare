@@ -45,7 +45,7 @@ export default function CommentSection({ recipeId, language }: { recipeId: strin
         let text = c.content
         const t = (translations || []).find(trans => trans.comment_id === c.id)
         if (t) {
-          text = t.content || t.text || text
+          text = t.translated_text || t.text || t.content || text
         } else if (language !== "all" && language !== "en") {
           try {
             const res = await fetch("/api/translate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: c.content, targetLanguage: language }) })
@@ -56,9 +56,9 @@ export default function CommentSection({ recipeId, language }: { recipeId: strin
                 supabase.from("Comment Translations").insert({
                   comment_id: c.id,
                   language,
-                  content: text,
+                  translated_text: text,
                 }).then(({ error: cacheErr }) => {
-                  if (cacheErr) console.error("Failed to cache comment translation:", cacheErr)
+                  if (cacheErr) console.warn("Comment translation cache skipped:", cacheErr.message)
                 })
               }
             }
@@ -87,6 +87,7 @@ export default function CommentSection({ recipeId, language }: { recipeId: strin
     const { data, error } = await supabase.from("Comments").insert({
       recipe_id: recipeId,
       content: comment,
+      created_at: new Date().toISOString(),
     }).select()
 
     setPosting(false)
@@ -116,9 +117,9 @@ export default function CommentSection({ recipeId, language }: { recipeId: strin
         supabase.from("Comment Translations").insert({
           comment_id: c.id,
           language,
-          content: comment,
+          translated_text: comment,
         }).then(({ error: cacheErr }) => {
-          if (cacheErr) console.error("Failed to cache comment translation:", cacheErr)
+          if (cacheErr) console.warn("Comment translation cache skipped:", cacheErr.message)
         })
       }
     }
