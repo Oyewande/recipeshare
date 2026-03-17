@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" rx="12" fill="#f2e8cf"/>
+  <circle cx="200" cy="120" r="60" fill="#e8dcc0"/>
+  <path d="M180 100 C180 100 185 80 200 80 C215 80 220 100 220 100" stroke="#bc4749" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <ellipse cx="200" cy="130" rx="40" ry="25" fill="#a7c957" opacity="0.6"/>
+  <ellipse cx="190" cy="125" rx="10" ry="6" fill="#6a994e" opacity="0.5"/>
+  <ellipse cx="212" cy="128" rx="8" ry="5" fill="#6a994e" opacity="0.5"/>
+  <path d="M170 145 Q200 165 230 145" stroke="#386641" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <text x="200" y="210" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="600" fill="#386641">No Image</text>
+  <text x="200" y="235" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#6a994e">Upload a photo of your dish</text>
+</svg>

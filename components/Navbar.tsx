@@ -3,20 +3,23 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import LanguageSwitcher from "./LanguageSwitcher"
-
-const NAV_LINKS = [
-  { href: "/explore", label: "Explore" },
-  { href: "/submit",  label: "Submit" },
-  { href: "/map",     label: "Map" },
-]
+import { useUI } from "@/lib/useUI"
 
 export default function Navbar() {
   const pathname = usePathname()
+  const { t } = useUI()
+
+  const NAV_LINKS = [
+    { href: "/explore", label: t("navExplore") },
+    { href: "/submit",  label: t("navSubmit") },
+    { href: "/map",     label: t("navMap") },
+  ]
 
   return (
     <nav className="sticky top-0 z-50 w-full glass border-b border-stone-200/30 dark:border-stone-800/50">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
 
+        {/* Brand — intentionally never translated */}
         <Link href="/" className="flex items-center gap-2 group">
           <span className="text-2xl group-hover:rotate-12 transition-transform">🌶️</span>
           <span className="text-xl font-extrabold tracking-tight text-stone-900 dark:text-white">

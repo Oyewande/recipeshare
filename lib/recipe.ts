@@ -21,7 +21,7 @@ export async function fetchRecipes(language: string, limit = 12, search?: string
   
   // Fetch matching translations for these recipes
   const recipeIds = recipes.map(r => r.id)
-  const { data: translationsData, error: translationsError } = await supabase
+  const { data: translationsData } = await supabase
     .from("Recipe Translations")
     .select("*")
     .in("recipe_id", recipeIds)
@@ -30,14 +30,15 @@ export async function fetchRecipes(language: string, limit = 12, search?: string
 
   try {
     const translatedList = await Promise.all(recipes.map(async (item: any) => {
-      const translationsArray = item["Recipe Translations"] || []
-      let translation = translationsArray.find((t: any) => t.language === language)
+      // Match translations from the separately-fetched translations array
+      const itemTranslations = translations.filter(t => t.recipe_id === item.id)
+      let translation = itemTranslations.find((t: any) => t.language === language)
 
-  
       if (!translation && item.original_language && language !== "all" && language !== item.original_language) {
         try {
           const res = await fetch("/api/translate", {
             method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text: item.title, targetLanguage: language })
           })
           const result = await res.json()
@@ -111,25 +112,33 @@ export async function fetchRecipesByCountry(country: string, language: string, l
       const itemTranslations = translations.filter(t => t.recipe_id === item.id)
       let translation = itemTranslations.find((t: any) => t.language === language)
 
-      if (!translation && itemTranslations.length > 0) {
-        translation = itemTranslations[0]
-        const res = await fetch("/api/translate", {
-          method: "POST",
-          body: JSON.stringify({ text: translation.title, targetLanguage: language })
-        })
-        const result = await res.json()
-        translation = { ...translation, title: result.translated || translation.title }
+      // Translate title on-the-fly if no exact language match exists
+      if (!translation && itemTranslations.length > 0 && language !== "en" && language !== "all") {
+        const base = itemTranslations[0]
+        try {
+          const res = await fetch("/api/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: base.title, targetLanguage: language })
+          })
+          const result = await res.json()
+          translation = { ...base, title: result.translated || base.title }
+        } catch (_) {
+          translation = itemTranslations[0]
+        }
       }
 
+      // Fall back to the base Recipes row when no translation is available at all
       const t = translation || {}
       return {
         id: item.id,
         country: item.country,
         image_url: item.image_url,
         original_language: item.original_language,
-        title: t.title || "",
-        ingredients: t.ingredients || "",
-        instructions: t.instructions || "",
+        title: t.title || item.title || "",
+        ingredients: t.ingredients || item.ingredients || "",
+        // "Recipe Translations" stores cooking steps in the `steps` column
+        instructions: t.steps || t.instructions || item.instructions || "",
       } as Recipe
     }))
 

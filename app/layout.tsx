@@ -1,10 +1,13 @@
-"use client"
-
 import "./globals.css"
-import Navbar from "@/components/Navbar"
-import Footer from "@/components/Footer"
 import { ReactNode } from "react"
-import { LanguageProvider } from "@/lib/languageContext"
+import type { Metadata } from "next"
+import ClientLayout from "@/components/ClientLayout"
+
+export const metadata: Metadata = {
+  title: "FlavorBridge — Taste the World, One Recipe at a Time",
+  description: "Discover authentic dishes from around the globe, seamlessly translated into your language. Share your culture's flavors with the world.",
+  keywords: ["recipes", "cooking", "multilingual", "translation", "global cuisine"],
+}
 
 interface LayoutProps {
   children: ReactNode
@@ -14,15 +17,7 @@ export default function RootLayout({ children }: LayoutProps) {
   return (
     <html lang="en">
       <body className={`bg-vanilla-cream text-hunter-green`}>
-        <LanguageProvider>
-          <Navbar />
-
-          <main className="min-h-[80vh] py-10 px-4 md:px-10">
-            {children}
-          </main>
-
-          <Footer />
-        </LanguageProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   )

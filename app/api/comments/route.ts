@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-)
+import { supabase } from "@/lib/supabase"
 
 // GET /api/comments?recipe_id=xxx — fetch comments for a recipe
 export async function GET(request: Request) {
@@ -16,7 +11,7 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await supabase
-    .from("comments")
+    .from("Comments")
     .select("*")
     .eq("recipe_id", recipeId)
     .order("created_at", { ascending: false })
@@ -28,11 +23,13 @@ export async function GET(request: Request) {
   return NextResponse.json({ comments: data })
 }
 
+const MAX_COMMENT_CHARS = 1_000
+
 // POST /api/comments — create a new comment
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { recipe_id, content, user_name } = body
+    const { recipe_id, content } = body
 
     if (!recipe_id || !content) {
       return NextResponse.json(
@@ -41,12 +38,19 @@ export async function POST(request: Request) {
       )
     }
 
+    // Security: enforce max length to prevent abuse
+    if (typeof content !== "string" || content.trim().length === 0) {
+      return NextResponse.json({ error: "content must be a non-empty string" }, { status: 400 })
+    }
+    if (content.length > MAX_COMMENT_CHARS) {
+      return NextResponse.json({ error: `Comment cannot exceed ${MAX_COMMENT_CHARS} characters` }, { status: 400 })
+    }
+
     const { data, error } = await supabase
-      .from("comments")
+      .from("Comments")
       .insert({
         recipe_id,
-        content,
-        user_name: user_name || "Anonymous",
+        content: content.trim(),
       })
       .select()
 

@@ -9,11 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@supabase/supabase-js": "^2.99.1",
     "d3-geo": "^3.1.1",
     "lingo.dev": "^0.133.2",
     "next": "16.1.6",
-    "openai": "^6.29.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-simple-maps": "^3.0.0"
@@ -28,5 +28,10 @@
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@lingo.dev/_react": {
+      "next": "$next"
+    }
   }
 }

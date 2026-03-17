@@ -2,16 +2,19 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import Image from "next/image"
 import { supabase } from "@/lib/supabase"
 import { Recipe } from "@/types/recipe"
 import IngredientSubstitute from "@/components/IngredientSubstitute"
 import CommentSection from "@/components/CommentSection"
 import { useLanguage } from "@/lib/languageContext"
+import { useUI } from "@/lib/useUI"
 
 export default function RecipeDetailPage() {
   const { id } = useParams()
   const router = useRouter()
   const { language, setLanguage } = useLanguage()
+  const { t } = useUI()
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -57,10 +60,11 @@ export default function RecipeDetailPage() {
 
         if (language !== "all" && language !== baseRecipe.original_language) {
           try {
+            const headers = { "Content-Type": "application/json" }
             const [titleObj, ingredientsObj, stepsObj] = await Promise.all([
-              fetch("/api/translate", { method: "POST", body: JSON.stringify({ text: sourceTitle, targetLanguage: language }) }).then(r => r.json()),
-              fetch("/api/translate", { method: "POST", body: JSON.stringify({ text: typeof sourceIngredients === 'string' ? sourceIngredients : JSON.stringify(sourceIngredients), targetLanguage: language }) }).then(r => r.json()),
-              fetch("/api/translate", { method: "POST", body: JSON.stringify({ text: typeof sourceInstructions === 'string' ? sourceInstructions : JSON.stringify(sourceInstructions), targetLanguage: language }) }).then(r => r.json())
+              fetch("/api/translate", { method: "POST", headers, body: JSON.stringify({ text: sourceTitle, targetLanguage: language }) }).then(r => r.json()),
+              fetch("/api/translate", { method: "POST", headers, body: JSON.stringify({ text: typeof sourceIngredients === 'string' ? sourceIngredients : JSON.stringify(sourceIngredients), targetLanguage: language }) }).then(r => r.json()),
+              fetch("/api/translate", { method: "POST", headers, body: JSON.stringify({ text: typeof sourceInstructions === 'string' ? sourceInstructions : JSON.stringify(sourceInstructions), targetLanguage: language }) }).then(r => r.json())
             ])
 
             const translatedData = {
@@ -81,7 +85,7 @@ export default function RecipeDetailPage() {
                 language: language,
                 title: translatedData.title,
                 ingredients: typeof translatedData.ingredients === "string" ? translatedData.ingredients : JSON.stringify(translatedData.ingredients),
-                instructions: typeof translatedData.instructions === "string" ? translatedData.instructions : JSON.stringify(translatedData.instructions),
+                steps: typeof translatedData.instructions === "string" ? translatedData.instructions : JSON.stringify(translatedData.instructions),
               }).then(({ error }) => {
                 if (error) console.error("Error caching translation:", error)
               })
@@ -125,6 +129,7 @@ export default function RecipeDetailPage() {
 
         const res = await fetch("/api/ai", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ingredientsText: ingredientsStr, userRegion })
         })
         const result = await res.json()
@@ -149,10 +154,10 @@ export default function RecipeDetailPage() {
   if (!recipe) return (
     <div className="min-h-[50vh] flex flex-col items-center justify-center text-center">
       <span className="text-4xl mb-4">🍽️</span>
-      <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100 mb-2">Recipe not found</h2>
-      <p className="text-stone-500 mb-6">This recipe might have been removed or doesn't exist.</p>
+      <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100 mb-2">{t("recipeNotFound")}</h2>
+      <p className="text-stone-500 mb-6">{t("recipeNotFoundSub")}</p>
       <button onClick={() => router.back()} className="text-hunter-green font-medium hover:underline">
-        Go back
+        {t("goBack")}
       </button>
     </div>
   )
@@ -186,11 +191,11 @@ export default function RecipeDetailPage() {
           onClick={() => router.back()}
           className="flex items-center gap-2 text-stone-500 hover:text-hunter-green transition-colors bg-white/50 dark:bg-stone-800/50 px-4 py-2 rounded-full border border-stone-200 dark:border-stone-700 w-fit backdrop-blur-sm shadow-sm"
         >
-          <span>←</span> Back to recipes
+          <span>←</span> {t("backToRecipes")}
         </button>
-        
+
         <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-800/50 px-4 py-1.5 rounded-full border border-stone-200 dark:border-stone-700 backdrop-blur-sm shadow-sm">
-          <span className="text-sm font-semibold text-stone-600 dark:text-stone-300 hidden sm:inline-block">Translate to:</span>
+          <span className="text-sm font-semibold text-stone-600 dark:text-stone-300 hidden sm:inline-block">{t("translateTo")}</span>
            <select 
              className="bg-transparent border-none focus:outline-none text-hunter-green font-bold cursor-pointer"
              value={language}
@@ -216,10 +221,13 @@ export default function RecipeDetailPage() {
       <div className="glass-card rounded-[32px] overflow-hidden">
         {/* Header Section */}
         <div className="relative h-72 sm:h-96 md:h-[450px]">
-          <img
+          <Image
             src={recipe.image_url || "/food-placeholder.svg"}
             alt={recipe.title}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 896px"
+            className="object-cover"
+            priority
           />
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-900/40 to-transparent"></div>
@@ -230,7 +238,7 @@ export default function RecipeDetailPage() {
                 <span>🌎</span> {recipe.country}
               </span>
               <span className="bg-hunter-green/80 backdrop-blur-md border border-sage-green/30 text-white px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider">
-                Orig: {recipe.original_language}
+                {t("origLabel")} {recipe.original_language}
               </span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-bold text-white mb-2 leading-tight drop-shadow-lg">
@@ -247,7 +255,7 @@ export default function RecipeDetailPage() {
               <div>
                 <h2 className="text-2xl font-bold text-stone-900 dark:text-white mb-6 flex items-center gap-2">
                   <span className="text-hunter-green">🛒</span>
-                  Ingredients
+                  {t("ingredientsHeading")}
                 </h2>
                 <ul className="space-y-3">
                   {ingredientsList.map((item, index) => (
@@ -264,7 +272,7 @@ export default function RecipeDetailPage() {
               <div>
                 <h2 className="text-2xl font-bold text-stone-900 dark:text-white mb-6 flex items-center gap-2">
                   <span className="text-hunter-green">🧑‍🍳</span>
-                  Instructions
+                  {t("instructionsHeading")}
                 </h2>
                 <ol className="space-y-6">
                   {stepsList.map((step, index) => (
@@ -285,7 +293,7 @@ export default function RecipeDetailPage() {
       </div>
 
       {subsLoading ? (
-        <div className="py-8 text-center text-stone-500 animate-pulse">✨ AI analyzing ingredients for local substitutions...</div>
+        <div className="py-8 text-center text-stone-500 animate-pulse">{t("aiLoading")}</div>
       ) : (
         <IngredientSubstitute substitutes={substitutions} />
       )}

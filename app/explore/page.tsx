@@ -1,48 +1,85 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import SearchBar from "@/components/SearchBar"
 import RecipeGrid from "@/components/RecipeGrid"
 import { Recipe } from "@/types/recipe"
 import { fetchRecipes } from "@/lib/recipe"
 import { useLanguage } from "@/lib/languageContext"
+import { useUI } from "@/lib/useUI"
 
-const LANGUAGES = [
-  { code: "all", label: "All", emoji: "🌍" },
-  { code: "en",  label: "English", emoji: "🇬🇧" },
-  { code: "es",  label: "Spanish", emoji: "🇪🇸" },
-  { code: "fr",  label: "French",  emoji: "🇫🇷" },
-  { code: "de",  label: "German",  emoji: "🇩🇪" },
-]
+// Module-level cache: survives component re-mounts (e.g. navigating away and back).
+// Keyed by "<language>__<searchQuery>" so different searches stay separate.
+const recipeCache: Record<string, Recipe[]> = {}
 
 export default function ExplorePage() {
   const { language } = useLanguage()
+  const { t } = useUI()
+  const searchParams = useSearchParams()
+  const searchQuery = searchParams.get("search") || ""
+  // allRecipes holds the full fetched set; recipes is the client-side filtered view.
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([])
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
   const [filterLang, setFilterLang] = useState("all")
+  // Track the last fetch key so we don't fire duplicate in-flight requests.
+  const fetchingRef = useRef<string | null>(null)
 
+  const LANGUAGES = [
+    { code: "all", label: t("filterAll"),    emoji: "🌍" },
+    { code: "en",  label: t("filterEnglish"),emoji: "🇬🇧" },
+    { code: "es",  label: t("filterSpanish"),emoji: "🇪🇸" },
+    { code: "fr",  label: t("filterFrench"), emoji: "🇫🇷" },
+    { code: "de",  label: t("filterGerman"), emoji: "🇩🇪" },
+  ]
+
+  // Effect 1: Fetch from Supabase only when language or search query changes.
+  // Changing the language filter (filterLang) does NOT trigger a new network call.
   useEffect(() => {
+    const cacheKey = `${language}__${searchQuery}`
+
+    // Serve from in-memory cache if we already have the data.
+    if (recipeCache[cacheKey]) {
+      setAllRecipes(recipeCache[cacheKey])
+      setLoading(false)
+      return
+    }
+
+    // Prevent duplicate in-flight requests for the same key.
+    if (fetchingRef.current === cacheKey) return
+    fetchingRef.current = cacheKey
+
     const fetchExploreRecipes = async () => {
       setLoading(true)
       try {
-        // Fetch recipes translated to the current user's requested language context
-        const data = await fetchRecipes(language, 30)
-        
-        // Let's filter the array by their native `original_language` if it's not "all"
-        if (filterLang !== "all") {
-          setRecipes(data.filter(r => r.original_language?.toLowerCase() === filterLang.toLowerCase()))
-        } else {
-          setRecipes(data)
-        }
+        const data = await fetchRecipes(language, 30, searchQuery || undefined)
+        recipeCache[cacheKey] = data
+        setAllRecipes(data)
       } catch (err) {
         console.error(err)
-        setRecipes([])
+        setAllRecipes([])
+      } finally {
+        fetchingRef.current = null
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     fetchExploreRecipes()
-  }, [filterLang, language])
+  }, [language, searchQuery])
+
+  // Effect 2: Filter client-side whenever the language filter or the full list changes.
+  // Zero network calls — instant response.
+  useEffect(() => {
+    if (filterLang === "all") {
+      setRecipes(allRecipes)
+    } else {
+      setRecipes(allRecipes.filter(r => r.original_language?.toLowerCase() === filterLang.toLowerCase()))
+    }
+  }, [filterLang, allRecipes])
+
+  const count = recipes.length
+  const countLabel = `${count} ${count === 1 ? t("recipeFound") : t("recipesFound")}`
 
   return (
     <div className="max-w-7xl mx-auto px-4 space-y-10">
@@ -50,10 +87,13 @@ export default function ExplorePage() {
       {/* Header */}
       <div className="pt-6 animate-slide-up">
         <h1 className="text-4xl md:text-5xl font-extrabold text-stone-900 dark:text-white mb-3">
-          Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-hunter-green to-yellow-green">Flavors</span>
+          {t("exploreHeading")}{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-hunter-green to-yellow-green">
+            {t("exploreFlavors")}
+          </span>
         </h1>
         <p className="text-stone-500 dark:text-stone-400 text-lg max-w-xl">
-          Browse recipes from kitchens across every continent, all translated for you.
+          {t("exploreSub")}
         </p>
       </div>
 
@@ -89,12 +129,12 @@ export default function ExplorePage() {
         ) : recipes.length === 0 ? (
           <div className="text-center py-24 glass-card rounded-3xl animate-fade-in">
             <span className="text-5xl mb-4 block">🔍</span>
-            <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">No recipes found</h3>
-            <p className="text-stone-500">Try changing the language filter or search for something else.</p>
+            <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">{t("noRecipesFound")}</h3>
+            <p className="text-stone-500">{t("noRecipesFoundSub")}</p>
           </div>
         ) : (
           <div className="animate-fade-in">
-            <p className="text-sm text-stone-400 mb-6 font-medium">{recipes.length} recipe{recipes.length !== 1 ? "s" : ""} found</p>
+            <p className="text-sm text-stone-400 mb-6 font-medium">{countLabel}</p>
             <RecipeGrid recipes={recipes} />
           </div>
         )}

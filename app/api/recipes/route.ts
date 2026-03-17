@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-)
+import { supabase } from "@/lib/supabase"
 
 // GET /api/recipes — fetch recipes with optional search, language, and limit
 export async function GET(request: Request) {
@@ -36,6 +31,12 @@ export async function GET(request: Request) {
   return NextResponse.json({ recipes: data })
 }
 
+const MAX_TITLE_CHARS = 200
+const MAX_INGREDIENTS_CHARS = 10_000
+const MAX_INSTRUCTIONS_CHARS = 20_000
+const MAX_COUNTRY_CHARS = 100
+const MAX_IMAGE_URL_CHARS = 500
+
 // POST /api/recipes — create a new recipe + its first translation
 export async function POST(request: Request) {
   try {
@@ -49,16 +50,27 @@ export async function POST(request: Request) {
       )
     }
 
-    // 1. Insert into "recipes" table
+    // Security: enforce max lengths to prevent oversized inserts
+    if (title.length > MAX_TITLE_CHARS) {
+      return NextResponse.json({ error: `title cannot exceed ${MAX_TITLE_CHARS} characters` }, { status: 400 })
+    }
+    if (ingredients.length > MAX_INGREDIENTS_CHARS) {
+      return NextResponse.json({ error: `ingredients cannot exceed ${MAX_INGREDIENTS_CHARS} characters` }, { status: 400 })
+    }
+    if (instructions.length > MAX_INSTRUCTIONS_CHARS) {
+      return NextResponse.json({ error: `instructions cannot exceed ${MAX_INSTRUCTIONS_CHARS} characters` }, { status: 400 })
+    }
+
+    // 1. Insert into "Recipes" table
     const { data: recipeData, error: recipeError } = await supabase
       .from("Recipes")
       .insert({
         title,
         ingredients,
         instructions,
-        country: country || "Unknown",
+        country: country ? String(country).slice(0, MAX_COUNTRY_CHARS) : "Unknown",
         original_language: language || "en",
-        image_url: image_url || "",
+        image_url: image_url ? String(image_url).slice(0, MAX_IMAGE_URL_CHARS) : "",
       })
       .select()
 
@@ -69,6 +81,7 @@ export async function POST(request: Request) {
     const recipeId = recipeData[0].id
 
     // 2. Insert the translation
+    // Note: "Recipe Translations" uses `steps` (not `instructions`) for the cooking steps column
     const { error: translationError } = await supabase
       .from("Recipe Translations")
       .insert({
@@ -76,7 +89,7 @@ export async function POST(request: Request) {
         language: language || "en",
         title,
         ingredients,
-        instructions,
+        steps: instructions,
       })
 
     if (translationError) {

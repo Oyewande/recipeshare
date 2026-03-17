@@ -1,19 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import Image from "next/image"
+import Link from "next/link"
 import MapView from "@/components/MapView"
-import RecipeGrid from "@/components/RecipeGrid"
 import { useLanguage } from "@/lib/languageContext"
+import { useUI } from "@/lib/useUI"
 import { fetchRecipesByCountry } from "@/lib/recipe"
 import { Recipe } from "@/types/recipe"
 
 export default function MapPage() {
   const { language } = useLanguage()
+  const { t } = useUI()
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(false)
 
-  const handleCountrySelect = async (countryName: string) => {
+  // useCallback so the function reference is stable for the useEffect dep array
+  const handleCountrySelect = useCallback(async (countryName: string) => {
     setSelectedCountry(countryName)
     setLoading(true)
     try {
@@ -25,81 +29,91 @@ export default function MapPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [language])
 
-  // Refetch when language changes if a country is already selected
+  // Re-fetch when language changes if a country is already selected
   useEffect(() => {
     if (selectedCountry) {
       handleCountrySelect(selectedCountry)
     }
-  }, [language])
+  }, [language, handleCountrySelect, selectedCountry])
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold text-hunter-green mb-6">Global Recipes Map</h1>
-      <p className="text-gray-600 mb-6">
-        Click on a country to explore recipes from that region!
-      </p>
+      <h1 className="text-3xl font-bold text-hunter-green mb-2">{t("mapTitle")}</h1>
+      <p className="text-stone-500 dark:text-stone-400 mb-6">{t("mapSubtitle")}</p>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        <div className="w-full lg:w-2/3 border rounded-lg p-4 bg-white shadow-sm overflow-hidden">
-          <MapView 
-            onCountrySelect={handleCountrySelect} 
-            selectedCountry={selectedCountry} 
+        <div className="w-full lg:w-2/3 border border-stone-200 dark:border-stone-800 rounded-2xl p-4 bg-white dark:bg-stone-900 shadow-sm overflow-hidden">
+          <MapView
+            onCountrySelect={handleCountrySelect}
+            selectedCountry={selectedCountry}
           />
         </div>
 
         <div className="w-full lg:w-1/3 flex flex-col min-h-[400px]">
           {selectedCountry ? (
-            <div className="bg-vanilla-cream rounded-lg p-6 border border-vanilla-cream flex-1">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span>Dishes from {selectedCountry}</span>
+            <div className="bg-vanilla-cream dark:bg-stone-900 rounded-2xl p-6 border border-stone-200 dark:border-stone-800 flex-1">
+              <h2 className="text-2xl font-semibold text-stone-800 dark:text-white mb-4">
+                {t("mapDishesFrom")} <span className="text-hunter-green">{selectedCountry}</span>
               </h2>
-              
+
               {loading ? (
                 <div className="flex flex-col gap-4">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse flex gap-4 bg-white p-3 rounded-md shadow-sm">
-                      <div className="w-16 h-16 bg-gray-200 rounded-md"></div>
+                    <div key={i} className="animate-pulse flex gap-4 bg-white dark:bg-stone-800 p-3 rounded-xl shadow-sm">
+                      <div className="w-16 h-16 bg-stone-200 dark:bg-stone-700 rounded-lg"></div>
                       <div className="flex-1 space-y-2 py-1">
-                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        <div className="h-4 bg-stone-200 dark:bg-stone-700 rounded w-3/4"></div>
+                        <div className="h-3 bg-stone-200 dark:bg-stone-700 rounded w-1/2"></div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : recipes.length > 0 ? (
-                <div className="flex flex-col gap-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-1">
                   {recipes.map(recipe => (
-                    <a key={recipe.id} href={`/recipe/${recipe.id}`} className="flex gap-4 bg-white p-3 rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100">
-                      <div className="w-20 h-20 shrink-0 bg-gray-100 rounded-md overflow-hidden relative">
-                        {recipe.image_url ? (
-                          <img src={recipe.image_url} alt={recipe.title} className="object-cover w-full h-full" />
-                        ) : (
-                          <div className="flex items-center justify-center w-full h-full text-gray-400">
-                            No image
-                          </div>
-                        )}
+                    <Link
+                      key={recipe.id}
+                      href={`/recipe/${recipe.id}`}
+                      className="flex gap-4 bg-white dark:bg-stone-800 p-3 rounded-xl shadow-sm hover:shadow-md transition-all border border-stone-100 dark:border-stone-700 group"
+                    >
+                      <div className="w-20 h-20 shrink-0 bg-stone-100 dark:bg-stone-700 rounded-lg overflow-hidden relative">
+                        <Image
+                          src={recipe.image_url?.trim() || "/food-placeholder.svg"}
+                          alt={recipe.title}
+                          fill
+                          sizes="80px"
+                          className="object-cover"
+                        />
                       </div>
-                      <div className="flex flex-col justify-center">
-                        <h3 className="font-medium text-gray-900 line-clamp-2">{recipe.title}</h3>
-                        <p className="text-sm text-gray-500 mt-1 capitalize">{recipe.country}</p>
+                      <div className="flex flex-col justify-center min-w-0">
+                        <h3 className="font-bold text-sm text-stone-900 dark:text-white line-clamp-2 group-hover:text-hunter-green transition-colors">
+                          {recipe.title}
+                        </h3>
+                        <span className="text-xs font-semibold text-hunter-green mt-1">
+                          {t("recipeCardView")} →
+                        </span>
                       </div>
-                    </a>
+                    </Link>
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-48 text-center text-gray-500 bg-white rounded-lg border border-dashed border-gray-300">
+                <div className="flex flex-col items-center justify-center h-48 text-center text-stone-500 bg-white dark:bg-stone-800 rounded-xl border border-dashed border-stone-300 dark:border-stone-600">
                   <span className="text-3xl mb-2">🍽️</span>
-                  <p>No recipes found for <strong>{selectedCountry}</strong> yet.</p>
-                  <a href="/submit" className="mt-4 text-hunter-green hover:text-hunter-green text-sm font-medium">Be the first to add one!</a>
+                  <p className="text-sm px-4">
+                    {t("mapNoRecipesFor")} <strong>{selectedCountry}</strong> {t("mapNoRecipesYet")}
+                  </p>
+                  <Link href="/submit" className="mt-4 text-hunter-green hover:text-sage-green text-sm font-semibold transition-colors">
+                    {t("mapBeFirst")}
+                  </Link>
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center text-gray-500 border-2 border-dashed border-gray-200 rounded-lg p-6">
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center text-stone-400 border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl p-6">
               <span className="text-4xl mb-4">🌍</span>
-              <p className="text-lg">Select a country on the map to see its delicious recipes!</p>
+              <p className="text-base font-medium">{t("mapSelectCountry")}</p>
             </div>
           )}
         </div>

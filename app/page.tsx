@@ -1,15 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import SearchBar from "@/components/SearchBar"
 import RecipeGrid from "@/components/RecipeGrid"
 import { Recipe } from "@/types/recipe"
 import { fetchRecipes } from "@/lib/recipe"
 import Link from "next/link"
 import { useLanguage } from "@/lib/languageContext"
+import { useUI } from "@/lib/useUI"
 
 export default function HomePage() {
   const { language } = useLanguage()
+  const { t } = useUI()
+  const router = useRouter()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -42,18 +46,18 @@ export default function HomePage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sage-green opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-hunter-green"></span>
             </span>
-            FlavorBridge is Live
+            {t("heroLive")}
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold text-stone-900 dark:text-white mb-6 tracking-tight leading-tight max-w-4xl mx-auto">
-            Taste the world, <br className="hidden md:block" />
+            {t("heroHeadline")} <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-hunter-green to-yellow-green">
-              one recipe at a time.
+              {t("heroHeadline2")}
             </span>
           </h1>
 
           <p className="text-stone-500 dark:text-stone-400 text-lg md:text-xl mb-10 max-w-2xl mx-auto leading-relaxed">
-            Discover authentic dishes from around the globe, seamlessly translated into your language. Share your culture's flavors with the world.
+            {t("heroSubtext")}
           </p>
 
           <div className="relative z-20 mb-8">
@@ -61,9 +65,20 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center justify-center gap-4 text-sm text-stone-500 font-medium">
-            <span>Popular:</span>
-            {["Pasta", "Jollof", "Curry", "Tacos"].map(tag => (
-              <span key={tag} className="hover:text-hunter-green cursor-pointer transition-colors">{tag}</span>
+            <span>{t("heroPopular")}</span>
+            {([
+              t("heroTag1"),
+              t("heroTag2"),
+              t("heroTag3"),
+              t("heroTag4"),
+            ] as const).map((tag, i) => (
+              <button
+                key={i}
+                onClick={() => router.push(`/explore?search=${encodeURIComponent(["Pasta","Jollof","Curry","Tacos"][i])}`)}
+                className="hover:text-hunter-green cursor-pointer transition-colors"
+              >
+                {tag}
+              </button>
             ))}
           </div>
         </section>
@@ -72,11 +87,11 @@ export default function HomePage() {
         <section className="px-4">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-2">Editor&apos;s Picks</h2>
-              <p className="text-stone-500 dark:text-stone-400">Hand-selected culinary masterpieces</p>
+              <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-2">{t("editorsPicks")}</h2>
+              <p className="text-stone-500 dark:text-stone-400">{t("editorsPicksSub")}</p>
             </div>
-            <Link href="/explore" className="text-hunter-green font-semibold hover:text-hunter-green transition flex items-center gap-1 group">
-              View all <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+            <Link href="/explore" className="text-hunter-green font-semibold hover:text-sage-green transition flex items-center gap-1 group">
+              {t("viewAll")} <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
             </Link>
           </div>
 
@@ -89,10 +104,10 @@ export default function HomePage() {
           ) : recipes.length === 0 ? (
             <div className="text-center py-20 glass-card rounded-3xl">
               <span className="text-5xl mb-4 block">🍳</span>
-              <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">No recipes yet</h3>
-              <p className="text-stone-500 mb-6">Be the first to share a global flavor!</p>
-              <Link href="/submit" className="bg-hunter-green text-white px-6 py-3 rounded-full font-semibold hover:bg-hunter-green transition-all shadow-lg shadow-hunter-green/20">
-                Submit a Recipe
+              <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">{t("noRecipesYet")}</h3>
+              <p className="text-stone-500 mb-6">{t("noRecipesYetSub")}</p>
+              <Link href="/submit" className="bg-hunter-green text-white px-6 py-3 rounded-full font-semibold hover:bg-sage-green transition-all shadow-lg shadow-hunter-green/20">
+                {t("submitRecipeBtn")}
               </Link>
             </div>
           ) : (
@@ -104,19 +119,19 @@ export default function HomePage() {
 
         {/* ── Travel by Taste ── */}
         <section className="px-4 pb-20">
-          <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-8 text-center">Travel by Taste</h2>
+          <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-8 text-center">{t("travelByTaste")}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {[
-              { flag: "🇮🇹", name: "Italy", recipes: "1.2k+" },
-              { flag: "🇫🇷", name: "France", recipes: "840+" },
+              { flag: "🇮🇹", name: "Italy",   recipes: "1.2k+" },
+              { flag: "🇫🇷", name: "France",  recipes: "840+" },
               { flag: "🇳🇬", name: "Nigeria", recipes: "920+" },
-              { flag: "🇯🇵", name: "Japan", recipes: "1.5k+" }
+              { flag: "🇯🇵", name: "Japan",   recipes: "1.5k+" }
             ].map((country, idx) => (
-              <div key={idx} className="glass-card rounded-[24px] p-6 text-center hover:scale-105 hover:bg-white dark:hover:bg-stone-800 hover:shadow-xl hover:shadow-hunter-green/10 cursor-pointer group transition-all duration-300">
+              <Link key={idx} href={`/explore?search=${encodeURIComponent(country.name)}`} className="glass-card rounded-[24px] p-6 text-center hover:scale-105 hover:bg-white dark:hover:bg-stone-800 hover:shadow-xl hover:shadow-hunter-green/10 cursor-pointer group transition-all duration-300 block">
                 <span className="text-5xl block mb-4 group-hover:-translate-y-2 transition-transform duration-300">{country.flag}</span>
                 <h3 className="font-bold text-lg text-stone-900 dark:text-white">{country.name}</h3>
                 <p className="text-sm font-medium mt-2 bg-stone-50 dark:bg-stone-950/50 border border-stone-200 dark:border-stone-800 text-stone-500 dark:text-stone-400 w-fit mx-auto px-3 py-0.5 rounded-full">{country.recipes}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

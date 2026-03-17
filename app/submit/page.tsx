@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useLanguage } from "@/lib/languageContext"
+import { useUI } from "@/lib/useUI"
 import Link from "next/link"
 
 const COUNTRIES = [
@@ -22,6 +23,7 @@ const COUNTRIES = [
 
 export default function SubmitPage() {
   const { language } = useLanguage()
+  const { t } = useUI()
   const [title, setTitle] = useState("")
   const [country, setCountry] = useState("")
   const [ingredients, setIngredients] = useState("")
@@ -47,7 +49,7 @@ export default function SubmitPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title || !ingredients || !instructions) {
-      setError("Please fill in all required fields.")
+      setError(t("fillAllFields"))
       return
     }
 
@@ -69,9 +71,9 @@ export default function SubmitPage() {
       const { data: recipeData, error: recipeError } = await supabase
         .from("Recipes")
         .insert({
-          title: title,
-          ingredients: ingredients,
-          instructions: instructions,
+          title,
+          ingredients,
+          instructions,
           country: country || "Unknown",
           original_language: language,
           image_url: imageUrl,
@@ -87,7 +89,7 @@ export default function SubmitPage() {
         language,
         title,
         ingredients,
-        instructions: instructions,
+        steps: instructions,
       })
 
       setSuccess(true)
@@ -110,19 +112,17 @@ export default function SubmitPage() {
       <div className="max-w-2xl mx-auto text-center py-32 animate-fade-in">
         <div className="glass-card rounded-[32px] p-12">
           <span className="text-6xl block mb-6">🎉</span>
-          <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-3">Recipe Submitted!</h2>
-          <p className="text-stone-500 dark:text-stone-400 mb-8">
-            Your recipe has been added to FlavorBridge. Thank you for sharing your flavors!
-          </p>
+          <h2 className="text-3xl font-bold text-stone-900 dark:text-white mb-3">{t("submitSuccess")}</h2>
+          <p className="text-stone-500 dark:text-stone-400 mb-8">{t("submitSuccessMsg")}</p>
           <div className="flex gap-4 justify-center">
             <button
               onClick={() => setSuccess(false)}
-              className="bg-hunter-green text-white px-6 py-3 rounded-full font-semibold hover:bg-hunter-green transition-all shadow-lg shadow-hunter-green/20"
+              className="bg-hunter-green text-white px-6 py-3 rounded-full font-semibold hover:bg-sage-green transition-all shadow-lg shadow-hunter-green/20"
             >
-              Submit Another
+              {t("submitAnother")}
             </button>
             <Link href="/explore" className="px-6 py-3 rounded-full font-semibold border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-all">
-              Explore Recipes
+              {t("exploreRecipes")}
             </Link>
           </div>
         </div>
@@ -135,11 +135,12 @@ export default function SubmitPage() {
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-4xl md:text-5xl font-extrabold text-stone-900 dark:text-white mb-3">
-          Share Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-hunter-green to-yellow-green">Recipe</span>
+          {t("shareYour")}{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-hunter-green to-yellow-green">
+            {t("shareRecipeWord")}
+          </span>
         </h1>
-        <p className="text-stone-500 dark:text-stone-400 text-lg">
-          Add your favorite dish from any culture. We'll translate it for the world!
-        </p>
+        <p className="text-stone-500 dark:text-stone-400 text-lg">{t("shareSub")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="glass-card rounded-[32px] p-8 sm:p-10 space-y-8">
@@ -153,7 +154,7 @@ export default function SubmitPage() {
         {/* Title */}
         <div className="space-y-2">
           <label className="text-sm font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
-            Recipe Title <span className="text-red-500">*</span>
+            {t("fieldTitle")} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -167,14 +168,14 @@ export default function SubmitPage() {
         {/* Country */}
         <div className="space-y-2">
           <label className="text-sm font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
-            Country of Origin
+            {t("fieldCountry")}
           </label>
           <select
             value={country}
             onChange={(e) => setCountry(e.target.value)}
             className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl px-5 py-4 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-hunter-green/30 focus:border-hunter-green transition-all"
           >
-            <option value="">Select a country...</option>
+            <option value="">{t("fieldCountryPlaceholder")}</option>
             {COUNTRIES.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -184,9 +185,9 @@ export default function SubmitPage() {
         {/* Ingredients */}
         <div className="space-y-2">
           <label className="text-sm font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
-            Ingredients <span className="text-red-500">*</span>
+            {t("fieldIngredients")} <span className="text-red-500">*</span>
           </label>
-          <p className="text-xs text-stone-400">List each ingredient on a new line</p>
+          <p className="text-xs text-stone-400">{t("fieldIngredientsSub")}</p>
           <textarea
             placeholder={"2 cups rice\n1 can tomatoes\n1 onion, diced\n..."}
             value={ingredients}
@@ -199,9 +200,9 @@ export default function SubmitPage() {
         {/* Steps */}
         <div className="space-y-2">
           <label className="text-sm font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
-            Instructions <span className="text-red-500">*</span>
+            {t("fieldInstructions")} <span className="text-red-500">*</span>
           </label>
-          <p className="text-xs text-stone-400">Write each step on a new line</p>
+          <p className="text-xs text-stone-400">{t("fieldInstructionsSub")}</p>
           <textarea
             placeholder={"Wash and parboil the rice for 10 minutes\nBlend the tomatoes with peppers\nFry onions in oil until golden\n..."}
             value={instructions}
@@ -214,7 +215,7 @@ export default function SubmitPage() {
         {/* Image Upload */}
         <div className="space-y-2">
           <label className="text-sm font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
-            Photo
+            {t("fieldPhoto")}
           </label>
           <div className="relative">
             <input
@@ -233,8 +234,8 @@ export default function SubmitPage() {
               ) : (
                 <>
                   <span className="text-3xl mb-2 group-hover:scale-110 transition-transform">📷</span>
-                  <span className="text-sm text-stone-500 font-medium">Click to upload a photo of your dish</span>
-                  <span className="text-xs text-stone-400 mt-1">PNG, JPG up to 5MB</span>
+                  <span className="text-sm text-stone-500 font-medium">{t("fieldPhotoSub")}</span>
+                  <span className="text-xs text-stone-400 mt-1">{t("fieldPhotoHint")}</span>
                 </>
               )}
             </label>
@@ -245,15 +246,15 @@ export default function SubmitPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-hunter-green to-yellow-green text-white py-4 rounded-2xl font-bold text-lg hover:from-hunter-green hover:to-yellow-green transition-all shadow-lg shadow-hunter-green/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+          className="w-full bg-gradient-to-r from-hunter-green to-yellow-green text-white py-4 rounded-2xl font-bold text-lg hover:from-sage-green hover:to-hunter-green transition-all shadow-lg shadow-hunter-green/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
-              Submitting...
+              {t("submittingBtn")}
             </span>
           ) : (
-            "🚀 Submit Recipe"
+            `🚀 ${t("submitBtn")}`
           )}
         </button>
       </form>
